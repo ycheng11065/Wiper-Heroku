@@ -38,13 +38,13 @@ def identify_server(response):
     )
     return response
 
-host = "0.0.0.0"
-port = int(os.environ.get("PORT", "8000"))
+# host = "0.0.0.0"
+# port = int(os.environ.get("PORT", "8000"))
 
-logging.getLogger("werkzeug").setLevel(logging.ERROR)
+# logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
-print(f"\nRunning Battlesnake at http://{host}:{port}")
-app.run(host=host, port=port)
+# print(f"\nRunning Battlesnake at http://{host}:{port}")
+# app.run(host=host, port=port)
 
 
 if __name__ == '__main__':
