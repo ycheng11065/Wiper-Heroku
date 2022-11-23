@@ -45,3 +45,7 @@ logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 print(f"\nRunning Battlesnake at http://{host}:{port}")
 app.run(host=host, port=port)
+
+
+if __name__ == '__main__':
+    app.run()
