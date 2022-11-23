@@ -1,5 +1,5 @@
 # Welcome to
-# __________         __    __  .__                               __
+# __________         __    __  .__                               __https://Wiper.abhijoymandal.repl.co
 # \______   \_____ _/  |__/  |_|  |   ____   ______ ____ _____  |  | __ ____
 #  |    |  _/\__  \\   __\   __\  | _/ __ \ /  ___//    \\__  \ |  |/ // __ \
 #  |    |   \ / __ \|  |  |  | |  |_\  ___/ \___ \|   |  \/ __ \|    <\  ___/
@@ -21,7 +21,7 @@ import typing
 
 MIN_SCORE = float('-inf')
 DEFAULT_SCORE = 0
-LARGER_SNAKE_DANGER = 2
+LARGER_SNAKE_DANGER = 3
 SAME_SNAKE_DANGER = 1
 SMALLER_SNAKE_REWARD = 0.5
 EDGE_KILL_WEIGHT = 2
@@ -81,7 +81,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
     print(len_you)
 
     map = [[0 for i in range(game_Width)] for j in range(game_Height)]
-    map = setBound(map, my_body, my_opp)
+    length_map = [[0 for i in range(game_Width)] for j in range(game_Height)]
+    map, length_map = setBound(map, length_map, my_opp, game_state)
     # We've included code to prevent your Battlesnake from moving backwards
     is_move_safe = prevent_back(game_state, is_move_safe, my_head, my_neck)
     # TODO: Step 1 - Prevent your Battlesnake from moving out of bounds
@@ -111,7 +112,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     for move in largest:
       is_move_safe[move]+=1
     if should_find_food(game_state, my_opp):
-      is_move_safe = find_food(game_state, is_move_safe, my_head, food)
+      is_move_safe = find_food(game_state, is_move_safe, my_head, food, length_map)
       print("find food")
     is_move_safe = can_edge_kill(game_state, is_move_safe)
     is_move_safe = score(game_state, my_head, is_move_safe, map)
@@ -121,6 +122,11 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # Choose a random move from the safe ones
     #next_move = random.choice(best_moves)
     next_move = best_moves[0]
+    if best_moves == ["left", "right"] or best_moves == ["rigth", "left"]:
+      if my_head["x"]<game_Width//2:
+        next_move = "right"
+      else:
+        next_move = "left" 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
 
@@ -211,12 +217,12 @@ def should_find_food(game_state, opp):
    
   lengths = [snake["length"] for snake in snakes]
  # if (len(opp) > 1):   #Only active when more than 1 snake on field
-  if me["length"] - max(lengths) < LENGTH_AIM:
+  if me["length"] - max(lengths) <= LENGTH_AIM:
       return True  
   return False
 
 
-def find_food(game_state, moves, head, foods):
+def find_food(game_state, moves, head, foods, length_map):
   closest = float("inf")
   min_food = {}
   FOOD_WEIGHT = HP_THRESH/game_state["you"]["health"]
@@ -227,6 +233,7 @@ def find_food(game_state, moves, head, foods):
       closest = distance
   if min_food == {}:
     return moves
+  
   if min_food["x"]>head["x"]:
     moves["right"]+=FOOD_WEIGHT
   if min_food["x"]<head["x"]:
@@ -236,6 +243,29 @@ def find_food(game_state, moves, head, foods):
   if min_food["y"]<head["y"]:
     moves["down"]+=FOOD_WEIGHT
   return moves
+
+
+
+# def food_inspection(game_state, moves, head, food, length_map):
+#   is_safe = True
+#   my_length = game_state["you"]["length"]
+#   if food["x"]>head["x"]:
+#     is_safe = is_safe and length_map[head["x"]+1][head["y"]]<my_length and length_map[head["x"]+2][head["y"]]<my_length
+#   if food["x"]<head["x"]:
+#     moves["left"]+=FOOD_WEIGHT
+#   if food["y"]>head["y"]:
+#     moves["up"]+=FOOD_WEIGHT
+#   if food["y"]<head["y"]:
+#     moves["down"]+=FOOD_WEIGHT
+
+# def check_bound(head, food):
+#   h_x = head["x"]
+#   h_y = head["y"]
+#   f_x = food["x"]
+#   f_y = food["y"]
+#   dir = (h_x-f_x, h_y-f_y)
+  
+  
 
 
 def can_edge_kill(game_state, moves):
@@ -323,23 +353,19 @@ def fill(map, width, height, x, y):
   total += fill(map,  width, height, x, y - 1)
   return total;
 
-def setBound(map, body, opp):
-  #Set bound for snake body
-  for bod in body:
-    x = bod["x"]
-    y = bod["y"]
-
-    map[x][y] = 1
+def setBound(map, length_map, opp, game_state):
   #Set bound for other snake 
+  myself = game_state["you"]
   for i in range(len(opp)):
-    #if i == 0:  continue     # Skip self
-    other_bod = opp[i]["body"]
-    for j in other_bod:
+    bod = opp[i]["body"]
+    for j in bod:
       x = j["x"]
       y = j["y"]
       map[x][y] = 1
+      if (opp[i]["id"] != myself["id"]):
+         length_map[x][y] = opp[i]["length"]
   
-  return map
+  return map, length_map
 
 
 def score(game_state, head, moves, map):
@@ -392,6 +418,7 @@ def score(game_state, head, moves, map):
   for move in largest:
     moves[move]+=1
   return moves
+
 
 
   
