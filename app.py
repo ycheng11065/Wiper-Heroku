@@ -1,5 +1,5 @@
 # Welcome to
-# __________         __    __  .__                               __https://Wiper.abhijoymandal.repl.co
+# __________         __    __  .__                               __
 # \______   \_____ _/  |__/  |_|  |   ____   ______ ____ _____  |  | __ ____
 #  |    |  _/\__  \\   __\   __\  | _/ __ \ /  ___//    \\__  \ |  |/ // __ \
 #  |    |   \ / __ \|  |  |  | |  |_\  ___/ \___ \|   |  \/ __ \|    <\  ___/
@@ -12,6 +12,7 @@
 
 import random
 import typing
+import numpy
 
 #Ranking:
 # 1: Larger Snake
@@ -28,6 +29,7 @@ EDGE_KILL_WEIGHT = 2
 
 HP_THRESH = 30
 LENGTH_AIM = 2
+AREA_AIM = 20
 len_you = 0
 
 # info is called when you create your Battlesnake on play.battlesnake.com
@@ -115,7 +117,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
       is_move_safe = find_food(game_state, is_move_safe, my_head, food, length_map)
       print("find food")
     is_move_safe = can_edge_kill(game_state, is_move_safe)
-    is_move_safe = score(game_state, my_head, is_move_safe, map)
+    is_move_safe = score(game_state, my_head, is_move_safe, map, length_map)
     print(f'scores: {is_move_safe}')
     bestScore = max([score for _, score in is_move_safe.items()])   #excess runtime?
     best_moves = [move for move, score in is_move_safe.items() if score==bestScore]
@@ -368,7 +370,7 @@ def setBound(map, length_map, opp, game_state):
   return map, length_map
 
 
-def score(game_state, head, moves, map):
+def score(game_state, head, moves, map, length_map):
   #for all moves with a score not = '-inf' make the move and look for snakes that can get there in one move (snakes around the new square) and score based on length and space available
   # add a scoring based on average space available after making a move
   avg = {"up":0, "down":0, "left":0, "right":0}
@@ -390,7 +392,19 @@ def score(game_state, head, moves, map):
             x = head["x"] + 1
             y = head["y"] 
             offsets = [[0,1], [0,-1], [1,0]]
-      # if game_state["you"]["length"]>15 and (x == 0 or x == game_state["board"]["width"]-1 or y == 0 or y == game_state["board"]["height"]-1):
+      np_lengthmap = numpy.asarray(length_map)
+      #print(np_lengthmap[:, 1])
+      if x == 0 and numpy.any(np_lengthmap[1]):
+        moves[move] -= 0.7
+      if x == game_state["board"]["width"]-1 and numpy.any(np_lengthmap[game_state["board"]["width"]-2]):
+        moves[move] -=0.7
+      # a = [1, 2, 3]   a[:]   a[:]  a[1]
+      if y == 0 and numpy.any(np_lengthmap[:, 1]): # [0, 1, 1, 0] or [[0], [1], ]
+        moves[move] -= 0.7
+      if y == game_state["board"]["height"]-1 and numpy.any(np_lengthmap[:, game_state["board"]["height"]-2]):
+        moves[move] -= 0.7
+        
+      # if (x == 0 or x == game_state["board"]["width"]-1 or y == 0 or y == game_state["board"]["height"]-1):
       #   moves[move]-=0.4
       for snake in game_state["board"]["snakes"]:
             if snake["id"] == game_state["you"]["id"] : continue
@@ -410,6 +424,8 @@ def score(game_state, head, moves, map):
       cpy_map = [row[:] for row in map]
       cpy_map[x][y]=1
       cpy_map[game_state["you"]["body"][-1]["x"]][game_state["you"]["body"][-1]["y"]] = 0
+      # cpy_body = [{'x':x, 'y':y}]+game_state["you"]["body"][:-1]
+      # moves[move]+=area(game_state, cpy_body)/AREA_AIM 
       spaces = floodFill(cpy_map, game_state["board"]["width"], game_state["board"]["height"], x, y)
       avg[move] = max([space for move, space in spaces.items()])
   print(f"average spaces {avg}")
@@ -419,6 +435,29 @@ def score(game_state, head, moves, map):
     moves[move]+=1
   return moves
 
+
+def area(game_state, body):
+  if game_state['you']['length']  < 8: return 0
+  max_x = float('-inf')
+  max_y = float('-inf')
+  min_x = float('inf')
+  min_y = float('inf')
+  
+  for i in body:
+    x = i['x']
+    y = i['y']
+    if max_x < x:
+      max_x = x;
+    if max_y < y:
+      max_y = y;
+    if min_x > x:
+      min_x = x;
+    if min_y > y:
+      min_y = y;
+
+  area = ((max_x - min_x + 1) * (max_y - min_y + 1)) - game_state['you']['length']  
+
+  return area
 
 
   
